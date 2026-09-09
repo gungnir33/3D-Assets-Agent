@@ -13,14 +13,26 @@ class GenerationBackend:
         self.settings = settings
         self.specs = load_manifest(manifest_path)
         self.manager: ModelManager | None = None
+        self._resolved = {}
 
     def _resolve(self):
         h3d = resolve_model(self.specs["hunyuan3d"], allow_download=self.settings.models.allow_download)
         dit = resolve_model(self.specs["hunyuandit"], allow_download=self.settings.models.allow_download)
+        self._resolved = {"hunyuan3d": h3d, "hunyuandit": dit}
         if self.manager is None:
             self.manager = ModelManager(self.settings.paths.hunyuan3d_source, h3d.local_path, dit.local_path,
                                         self.settings.runtime.device)
         return h3d, dit
+
+    def resolved_models(self):
+        return {
+            name: {
+                "path": str(model.local_path),
+                "revision": model.revision,
+                "downloaded": model.downloaded,
+            }
+            for name, model in self._resolved.items()
+        }
 
     def health(self):
         import torch
@@ -48,6 +60,9 @@ class GenerationBackend:
 
     def _paint(self, raw_path: Path, image: Path, job: Path, request) -> Path:
         mesh = trimesh.load(raw_path, force="mesh")
+        self.manager.release("shape")
+        self.manager.release("t2i")
+        self.manager.cleanup_cuda()
         return TexturePipeline(self.manager.acquire_paint()).generate(mesh, image, job,
                                                                       face_count=request.face_count)
 
@@ -61,6 +76,9 @@ class GenerationBackend:
 
     def generate_text(self, request, job_dir: Path) -> Path:
         self._resolve()
+        self.manager.release("shape")
+        self.manager.release("paint")
+        self.manager.cleanup_cuda()
         condition = TextToImagePipeline(self.manager.acquire_t2i()).generate(
             request.prompt, job_dir / "condition.png", seed=request.seed)
         self.manager.release("t2i"); self.manager.cleanup_cuda()
@@ -74,4 +92,3 @@ class GenerationBackend:
         mesh = trimesh.load(request.mesh, force="mesh")
         return TexturePipeline(self.manager.acquire_paint()).generate(
             mesh, request.condition_image, job_dir, face_count=request.face_count)
-

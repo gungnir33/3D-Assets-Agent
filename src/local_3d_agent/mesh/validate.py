@@ -10,6 +10,21 @@ class MeshValidation:
     faces: int
     textured: bool
 
+
+def _material_has_image(material: object) -> bool:
+    materials = getattr(material, "materials", None)
+    if materials is not None:
+        return any(_material_has_image(item) for item in materials)
+    slots = (
+        "image",
+        "baseColorTexture",
+        "metallicRoughnessTexture",
+        "normalTexture",
+        "emissiveTexture",
+        "occlusionTexture",
+    )
+    return any(getattr(material, slot, None) is not None for slot in slots)
+
 def _as_mesh(source: Path | trimesh.Trimesh) -> trimesh.Trimesh:
     if isinstance(source, trimesh.Trimesh):
         return source
@@ -37,8 +52,9 @@ def validate_mesh(source: Path | trimesh.Trimesh, *, require_texture: bool = Fal
     if bounds.shape != (2, 3) or not np.isfinite(bounds).all() or not np.any(bounds[1] > bounds[0]):
         raise ValueError("mesh bounding box is invalid")
     visual = mesh.visual
-    textured = bool(getattr(visual, "uv", None) is not None and getattr(visual, "material", None) is not None)
+    uv = getattr(visual, "uv", None)
+    material = getattr(visual, "material", None)
+    textured = bool(uv is not None and len(uv) > 0 and material is not None and _material_has_image(material))
     if require_texture and not textured:
-        raise ValueError("textured mesh must contain UV and material")
+        raise ValueError("textured mesh must contain UV, material, and texture image")
     return MeshValidation(True, len(vertices), len(faces), textured)
-

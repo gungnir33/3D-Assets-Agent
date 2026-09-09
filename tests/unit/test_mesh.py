@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import trimesh
+from PIL import Image
 
 from local_3d_agent.mesh.preprocess import preprocess_mesh
 from local_3d_agent.mesh.validate import validate_mesh
@@ -25,6 +26,29 @@ def test_validate_mesh_rejects_nonfinite_coordinates(tmp_path: Path) -> None:
         validate_mesh(mesh)
 
 
+def test_validate_mesh_requires_an_actual_texture_image(tmp_path: Path) -> None:
+    textured = trimesh.creation.box()
+    textured.visual = trimesh.visual.texture.TextureVisuals(
+        uv=np.zeros((len(textured.vertices), 2)),
+        material=trimesh.visual.material.PBRMaterial(
+            baseColorTexture=Image.new("RGB", (2, 2), "red")
+        ),
+    )
+    textured_path = tmp_path / "textured.glb"
+    textured.export(textured_path)
+
+    assert validate_mesh(textured_path, require_texture=True).textured is True
+
+    untextured = trimesh.creation.box()
+    untextured.visual = trimesh.visual.texture.TextureVisuals(
+        uv=np.zeros((len(untextured.vertices), 2)),
+        material=trimesh.visual.material.PBRMaterial(),
+    )
+
+    with pytest.raises(ValueError, match="texture image"):
+        validate_mesh(untextured, require_texture=True)
+
+
 def test_preprocess_mesh_calls_processors_in_required_order() -> None:
     events = []
     mesh = object()
@@ -36,4 +60,3 @@ def test_preprocess_mesh_calls_processors_in_required_order() -> None:
 
     assert result is mesh
     assert events == ["floater", "degenerate", "reduce:40000"]
-

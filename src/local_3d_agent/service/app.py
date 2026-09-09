@@ -1,8 +1,10 @@
 from __future__ import annotations
+import time
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from local_3d_agent.metadata import JobMetadata, create_job
+from local_3d_agent.mesh.export import export_mesh
 from .errors import ApiError
 from .gpu_lock import GpuTaskLock
 from .schemas import GenerationResponse, ImageRequest, TextRequest, TextureRequest
@@ -40,14 +42,63 @@ def create_app(settings, *, backend=None) -> FastAPI:
                                shape_steps=payload.shape_steps, face_count=payload.face_count,
                                device=settings.runtime.device, dtype=settings.runtime.dtype)
         try:
+            started = time.monotonic()
+            peak_vram = 0
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.reset_peak_memory_stats()
+            except (ImportError, RuntimeError):
+                torch = None
             with app.state.gpu_lock:
                 output = getattr(active_backend(), f"generate_{kind}")(payload, job)
+            output = Path(output)
+            if payload.format != output.suffix.lstrip(".").lower():
+                import trimesh
+                mesh = trimesh.load(output, force="mesh")
+                output = export_mesh(mesh, job / "model", payload.format)
+            if torch is not None and torch.cuda.is_available():
+                peak_vram = torch.cuda.max_memory_allocated()
+            metadata.record_stage("generation", time.monotonic() - started, peak_vram=peak_vram)
+            resolved_models = getattr(active_backend(), "resolved_models", lambda: {})()
+            for name, model in resolved_models.items():
+                metadata.record_model(name, model["path"], model.get("revision"),
+                                      downloaded=model.get("downloaded", False))
+            if kind == "text":
+                metadata.record_inputs(condition_image=str(job / "condition.png"))
+            elif kind == "image":
+                copied = str(job / "input.png")
+                metadata.record_inputs(input_image=copied, condition_image=copied)
+            else:
+                metadata.record_inputs(condition_image=str(payload.condition_image),
+                                       input_mesh=str(payload.mesh))
             metadata.finish(output)
             return GenerationResponse(job_id=job.name, file=str(output), type=Path(output).suffix.lstrip("."),
                                       metadata=str(job / "metadata.json"))
         except ApiError:
             raise
         except Exception as exc:
+            try:
+                import torch
+                is_oom = isinstance(exc, torch.cuda.OutOfMemoryError)
+            except ImportError:
+                torch, is_oom = None, False
+            if is_oom:
+                details = {
+                    "allocated_bytes": torch.cuda.memory_allocated() if torch.cuda.is_available() else 0,
+                    "reserved_bytes": torch.cuda.memory_reserved() if torch.cuda.is_available() else 0,
+                    "total_bytes": torch.cuda.get_device_properties(0).total_memory if torch.cuda.is_available() else 0,
+                }
+                manager = getattr(app.state.backend, "manager", None)
+                if manager is not None:
+                    manager.release_all()
+                else:
+                    import gc
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                metadata.fail("CUDA_OUT_OF_MEMORY", str(exc))
+                raise ApiError("CUDA_OUT_OF_MEMORY", str(exc), details=details, status_code=503) from exc
             metadata.fail("GENERATION_FAILED", str(exc))
             raise ApiError("GENERATION_FAILED", str(exc)) from exc
 

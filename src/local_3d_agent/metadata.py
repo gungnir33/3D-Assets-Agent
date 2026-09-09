@@ -26,6 +26,9 @@ class JobMetadata:
             "generation_start_time": datetime.now(timezone.utc).isoformat(),
             "models": {}, "stages": {}, "peak_vram_bytes": 0,
         }
+        (self.job_dir / "generation.log").write_text(
+            f"{self.data['generation_start_time']} generation started\n", encoding="utf-8"
+        )
         self._write()
 
     def _write(self) -> None:
@@ -36,6 +39,16 @@ class JobMetadata:
 
     def record_model(self, name: str, path: str, revision: str | None, *, downloaded: bool) -> None:
         self.data["models"][name] = {"path": path, "revision": revision, "downloaded": downloaded}
+        self._write()
+
+    def record_inputs(self, *, input_image: str | None = None,
+                      condition_image: str | None = None,
+                      input_mesh: str | None = None) -> None:
+        self.data.update(
+            input_image=input_image,
+            condition_image=condition_image,
+            input_mesh=input_mesh,
+        )
         self._write()
 
     def record_stage(self, name: str, duration: float, *, peak_vram: int = 0) -> None:
@@ -52,4 +65,3 @@ class JobMetadata:
         self.data.update(status="FAILED", error={"code": code, "message": message},
                          generation_duration_seconds=time.monotonic() - self.started_monotonic)
         self._write()
-

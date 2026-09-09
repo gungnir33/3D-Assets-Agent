@@ -9,6 +9,7 @@ def test_metadata_writes_required_generation_fields(tmp_path: Path) -> None:
     metadata = JobMetadata(job, seed=7, prompt="robot", shape_steps=20, face_count=40000,
                            device="cuda", dtype="float16")
     metadata.record_model("shape", "/models/h3d", "rev1", downloaded=False)
+    metadata.record_inputs(input_image="/assets/input.png", condition_image="/assets/condition.png")
     metadata.record_stage("shape", 1.25, peak_vram=1024)
     metadata.finish(job / "model.glb")
 
@@ -16,7 +17,9 @@ def test_metadata_writes_required_generation_fields(tmp_path: Path) -> None:
     assert job.name == "20260909_120000_abc123"
     assert payload["seed"] == 7
     assert payload["models"]["shape"]["revision"] == "rev1"
+    assert payload["input_image"] == "/assets/input.png"
+    assert payload["condition_image"] == "/assets/condition.png"
     assert payload["stages"]["shape"]["duration_seconds"] == 1.25
     assert payload["peak_vram_bytes"] == 1024
     assert payload["status"] == "SUCCEEDED"
-
+    assert (job / "generation.log").is_file()

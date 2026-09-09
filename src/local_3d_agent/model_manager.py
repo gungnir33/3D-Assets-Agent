@@ -50,6 +50,10 @@ class ModelManager:
     def release(self, name: str) -> None:
         self.models.pop(name, None)
 
+    def release_all(self) -> None:
+        self.models.clear()
+        self.cleanup_cuda()
+
     @staticmethod
     def cleanup_cuda() -> None:
         gc.collect()
