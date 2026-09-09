@@ -1,0 +1,16 @@
+models:
+  hunyuan3d:
+    local_path: /home/mcl/models/hunyuan3d/Hunyuan3D-2
+    remote_repo: tencent/Hunyuan3D-2
+    required_files: [config.json, hunyuan3d-dit-v2-0/config.yaml, hunyuan3d-dit-v2-0/model.fp16.safetensors, hunyuan3d-paint-v2-0/model_index.json]
+    required_directories: [hunyuan3d-dit-v2-0, hunyuan3d-paint-v2-0, hunyuan3d-delight-v2-0]
+  hunyuandit:
+    local_path: /home/mcl/models/hunyuan3d/HunyuanDiT-v1.1-Diffusers-Distilled
+    remote_repo: Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled
+    required_files: [model_index.json, scheduler/scheduler_config.json, transformer/config.json, transformer/diffusion_pytorch_model.safetensors, vae/config.json, vae/diffusion_pytorch_model.safetensors, text_encoder/model.safetensors, text_encoder_2/model.safetensors.index.json]
+    required_directories: [tokenizer, tokenizer_2, text_encoder, text_encoder_2, transformer, vae]
+  rembg:
+    local_path: /home/mcl/models/rembg
+    remote_repo: null
+    required_files: [u2net.onnx]
+

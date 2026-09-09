@@ -1,0 +1,11 @@
+server: {host: "127.0.0.1", port: 8080}
+paths:
+  hunyuan3d_source: "/home/mcl/workspace/hunyuan3d/Hunyuan3D-2"
+  hunyuan3d_model: "/home/mcl/models/hunyuan3d/Hunyuan3D-2"
+  hunyuandit_model: "/home/mcl/models/hunyuan3d/HunyuanDiT-v1.1-Diffusers-Distilled"
+  rembg_model_dir: "/home/mcl/models/rembg"
+  assets: "/home/mcl/workspace/3D-Assets-Agent/assets"
+models: {allow_download: true}
+runtime: {device: "cuda", dtype: "float16"}
+generation: {default_seed: 12345, default_format: "glb", default_face_count: 40000, default_shape_steps: 50}
+
