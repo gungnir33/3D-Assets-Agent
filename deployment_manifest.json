@@ -15,7 +15,7 @@
   "hunyuandit_model_revision": "527cf2ecce7c04021975938f8b0e44e35d2b1ed9",
   "models_downloaded_by_deployment": false,
   "validation": {
-    "pytest": "26 passed, 3 skipped",
+    "pytest": "28 passed, 3 skipped",
     "gpu_e2e": "3 passed in 215.00s",
     "health": "ok",
     "image_to_3d": {

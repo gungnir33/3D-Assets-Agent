@@ -1,5 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
+import pytest
+from PIL import Image
 
 from local_3d_agent.service.backend import GenerationBackend
 
@@ -43,3 +45,32 @@ def test_paint_releases_shape_before_loading_paint(tmp_path: Path, monkeypatch) 
     request = SimpleNamespace(face_count=40000)
     service._paint(tmp_path / "raw.glb", tmp_path / "condition.png", tmp_path, request)
     assert events == ["release:shape", "release:t2i", "cleanup", "acquire:paint"]
+
+
+def test_opaque_input_fails_clearly_when_rembg_is_missing_and_download_disabled(tmp_path: Path) -> None:
+    source = tmp_path / "opaque.jpg"
+    Image.new("RGB", (8, 8), "white").save(source)
+    service = GenerationBackend.__new__(GenerationBackend)
+    service.settings = SimpleNamespace(
+        paths=SimpleNamespace(rembg_model_dir=tmp_path / "rembg"),
+        models=SimpleNamespace(allow_download=False),
+    )
+    job = tmp_path / "job"
+    job.mkdir()
+
+    with pytest.raises(RuntimeError, match="rembg model is missing"):
+        service._copy_input(source, job)
+
+
+def test_transparent_input_does_not_require_rembg(tmp_path: Path) -> None:
+    source = tmp_path / "transparent.png"
+    Image.new("RGBA", (8, 8), (255, 0, 0, 0)).save(source)
+    job = tmp_path / "job"
+    job.mkdir()
+    service = GenerationBackend.__new__(GenerationBackend)
+    service.settings = SimpleNamespace(
+        paths=SimpleNamespace(rembg_model_dir=tmp_path / "rembg"),
+        models=SimpleNamespace(allow_download=False),
+    )
+
+    assert service._copy_input(source, job).is_file()

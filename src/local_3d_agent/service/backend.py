@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import shutil
 from pathlib import Path
 import trimesh
@@ -46,11 +47,27 @@ class GenerationBackend:
         return {"status": "ok" if cuda else "degraded", "cuda": cuda,
                 "gpu": torch.cuda.get_device_name(0) if cuda else None, "models": models}
 
-    @staticmethod
-    def _copy_input(source: Path, job: Path) -> Path:
+    def _remove_background(self, image):
+        model_dir = self.settings.paths.rembg_model_dir
+        model_file = model_dir / "u2net.onnx"
+        if not model_file.is_file() and not self.settings.models.allow_download:
+            raise RuntimeError(
+                f"rembg model is missing: {model_file}; enable models.allow_download to fill it"
+            )
+        model_dir.mkdir(parents=True, exist_ok=True)
+        os.environ["U2NET_HOME"] = str(model_dir)
+        from rembg import new_session, remove
+        session = new_session("u2net")
+        return remove(image, session=session, bgcolor=[255, 255, 255, 0])
+
+    def _copy_input(self, source: Path, job: Path) -> Path:
         target = job / "input.png"
         from PIL import Image
-        Image.open(source).convert("RGBA").save(target)
+        image = Image.open(source).convert("RGBA")
+        alpha_min, _ = image.getchannel("A").getextrema()
+        if alpha_min == 255:
+            image = self._remove_background(image).convert("RGBA")
+        image.save(target)
         return target
 
     def _shape(self, image: Path, job: Path, request) -> Path:
