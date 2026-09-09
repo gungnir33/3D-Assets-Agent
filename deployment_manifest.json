@@ -1,6 +1,6 @@
 {
   "generated_at": "2026-09-09T21:10:00+08:00",
-  "project_git_commit": "5031360caa68868d2bc65a64f9bae6bb9ad4667a",
+  "project_git_commit": "7f7e1fc8805aab4d93cc710e3061f50244197ea2",
   "hunyuan3d_git_commit": "f8db63096c8282cb27354314d896feba5ba6ff8a",
   "hunyuan3d_upstream_patch": "scripts/apply_upstream_patches.sh",
   "python": "3.10.21",
