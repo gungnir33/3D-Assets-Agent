@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-09-09T21:10:00+08:00",
+  "project_git_commit": "5031360caa68868d2bc65a64f9bae6bb9ad4667a",
+  "hunyuan3d_git_commit": "f8db63096c8282cb27354314d896feba5ba6ff8a",
+  "hunyuan3d_upstream_patch": "scripts/apply_upstream_patches.sh",
+  "python": "3.10.21",
+  "torch": "2.7.1+cu128",
+  "torch_cuda": "12.8",
+  "nvidia_driver": "575.64.05",
+  "gpu": "NVIDIA RTX 5880 Ada Generation",
+  "gpu_memory_mib": 49140,
+  "hunyuan3d_model_path": "/home/mcl/models/hunyuan3d/Hunyuan3D-2",
+  "hunyuan3d_model_revision": "9cd649ba6913f7a852e3286bad86bfa9a2d83dcf",
+  "hunyuandit_model_path": "/home/mcl/models/hunyuan3d/HunyuanDiT-v1.1-Diffusers-Distilled",
+  "hunyuandit_model_revision": "527cf2ecce7c04021975938f8b0e44e35d2b1ed9",
+  "models_downloaded_by_deployment": false,
+  "validation": {
+    "pytest": "26 passed, 3 skipped",
+    "gpu_e2e": "3 passed in 215.00s",
+    "health": "ok",
+    "image_to_3d": {
+      "job_id": "20260909_210330_6c804545",
+      "duration_seconds": 72.4653775319457,
+      "peak_vram_bytes": 5985050112,
+      "output": "/home/mcl/workspace/3D-Assets-Agent/assets/20260909_210330_6c804545/model.glb"
+    },
+    "text_to_3d": {
+      "job_id": "20260909_210532_fe231a7e",
+      "duration_seconds": 96.12132041796576,
+      "peak_vram_bytes": 10338872832,
+      "output": "/home/mcl/workspace/3D-Assets-Agent/assets/20260909_210532_fe231a7e/model.glb"
+    },
+    "texture": {
+      "job_id": "20260909_210805_9dfdcdd0",
+      "duration_seconds": 36.50009008392226,
+      "peak_vram_bytes": 15554407936,
+      "output": "/home/mcl/workspace/3D-Assets-Agent/assets/20260909_210805_9dfdcdd0/model.glb",
+      "vertices": 23575,
+      "faces": 40000,
+      "uv_material_texture": true
+    }
+  }
+}
